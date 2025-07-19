@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, Gift, Star } from "lucide-react";
+import { Heart, Gift, Star, Video, Gamepad2, Tv } from "lucide-react";
 
 const BirthdayHero = () => {
   return (
@@ -49,25 +49,45 @@ const BirthdayHero = () => {
             </p>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mt-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 justify-center items-center mt-8">
             <Button 
               variant="romantic" 
               size="lg"
-              className="text-lg px-8 py-3"
+              className="text-base px-6 py-3"
               onClick={() => document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <Heart className="mr-2" size={20} />
-              See Our Memories
+              <Heart className="mr-2" size={18} />
+              Memories
             </Button>
             
             <Button 
               variant="heart" 
               size="lg"
-              className="text-lg px-8 py-3"
-              onClick={() => document.getElementById('wishes')?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-base px-6 py-3"
+              onClick={() => document.getElementById('video')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <Gift className="mr-2" size={20} />
-              Birthday Wishes
+              <Video className="mr-2" size={18} />
+              Video Call
+            </Button>
+
+            <Button 
+              variant="romantic" 
+              size="lg"
+              className="text-base px-6 py-3"
+              onClick={() => document.getElementById('watch')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <Tv className="mr-2" size={18} />
+              Watch Together
+            </Button>
+            
+            <Button 
+              variant="heart" 
+              size="lg"
+              className="text-base px-6 py-3"
+              onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <Gamepad2 className="mr-2" size={18} />
+              Play Games
             </Button>
           </div>
 

@@ -8,49 +8,54 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 340 40% 98%;
-    --foreground: 340 60% 15%;
+    --background: 0 8% 8%;
+    --foreground: 0 5% 95%;
 
-    --card: 350 50% 96%;
-    --card-foreground: 340 60% 15%;
+    --card: 0 10% 12%;
+    --card-foreground: 0 5% 95%;
 
-    --popover: 350 50% 96%;
-    --popover-foreground: 340 60% 15%;
+    --popover: 0 10% 12%;
+    --popover-foreground: 0 5% 95%;
 
-    --primary: 340 75% 65%;
-    --primary-foreground: 350 50% 98%;
+    --primary: 0 75% 45%;
+    --primary-foreground: 0 5% 95%;
 
-    --secondary: 350 40% 90%;
-    --secondary-foreground: 340 60% 25%;
+    --secondary: 220 20% 25%;
+    --secondary-foreground: 0 5% 95%;
 
-    --muted: 345 35% 92%;
-    --muted-foreground: 340 30% 55%;
+    --muted: 0 8% 18%;
+    --muted-foreground: 0 5% 65%;
 
-    --accent: 315 70% 80%;
-    --accent-foreground: 340 60% 15%;
+    --accent: 220 60% 35%;
+    --accent-foreground: 0 5% 95%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 5% 95%;
 
-    --border: 345 25% 88%;
-    --input: 345 25% 88%;
-    --ring: 340 75% 65%;
+    --border: 220 25% 20%;
+    --input: 220 25% 20%;
+    --ring: 0 75% 45%;
 
     --radius: 1rem;
 
-    /* Romantic gradients */
-    --gradient-romantic: linear-gradient(135deg, hsl(340 75% 75%), hsl(315 70% 80%), hsl(290 65% 85%));
-    --gradient-soft: linear-gradient(180deg, hsl(350 50% 98%), hsl(340 40% 96%));
-    --gradient-hero: linear-gradient(135deg, hsl(340 60% 85%) 0%, hsl(315 55% 88%) 50%, hsl(290 50% 90%) 100%);
+    /* Dark romantic gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(0 60% 25%), hsl(220 50% 30%), hsl(0 45% 20%));
+    --gradient-soft: linear-gradient(180deg, hsl(0 8% 8%), hsl(0 6% 10%));
+    --gradient-hero: linear-gradient(135deg, hsl(0 50% 15%) 0%, hsl(220 40% 20%) 50%, hsl(0 40% 12%) 100%);
+    --gradient-gaming: linear-gradient(135deg, hsl(220 80% 15%), hsl(0 70% 20%), hsl(280 60% 25%));
+    --gradient-video: linear-gradient(135deg, hsl(0 60% 20%), hsl(220 70% 25%));
     
-    /* Romantic shadows */
-    --shadow-romantic: 0 10px 40px -10px hsl(340 75% 65% / 0.3);
-    --shadow-soft: 0 4px 20px -4px hsl(340 50% 70% / 0.2);
-    --shadow-glow: 0 0 30px hsl(340 75% 70% / 0.4);
+    /* Dark shadows with red/blue glow */
+    --shadow-romantic: 0 10px 40px -10px hsl(0 75% 25% / 0.5);
+    --shadow-soft: 0 4px 20px -4px hsl(220 50% 30% / 0.3);
+    --shadow-glow: 0 0 30px hsl(0 75% 35% / 0.6);
+    --shadow-blue-glow: 0 0 25px hsl(220 70% 50% / 0.4);
 
-    /* Heart animations */
+    /* Enhanced animations */
     --heart-float: heart-float 6s ease-in-out infinite;
     --sparkle: sparkle 2s ease-in-out infinite;
+    --pulse-red: pulse-red 3s ease-in-out infinite;
+    --pulse-blue: pulse-blue 3s ease-in-out infinite;
 
     /* Transitions */
     --transition-romantic: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
@@ -133,6 +138,14 @@ All colors MUST be HSL.
     background: var(--gradient-hero);
   }
   
+  .bg-gradient-gaming {
+    background: var(--gradient-gaming);
+  }
+  
+  .bg-gradient-video {
+    background: var(--gradient-video);
+  }
+  
   .shadow-romantic {
     box-shadow: var(--shadow-romantic);
   }
@@ -143,6 +156,10 @@ All colors MUST be HSL.
   
   .shadow-glow {
     box-shadow: var(--shadow-glow);
+  }
+  
+  .shadow-blue-glow {
+    box-shadow: var(--shadow-blue-glow);
   }
   
   .transition-romantic {
@@ -175,6 +192,22 @@ All colors MUST be HSL.
   .sparkle {
     animation: sparkle 2s ease-in-out infinite;
   }
+  
+  .pulse-red {
+    animation: pulse-red 3s ease-in-out infinite;
+  }
+  
+  .pulse-blue {
+    animation: pulse-blue 3s ease-in-out infinite;
+  }
+  
+  .gaming-border {
+    @apply border-2 border-accent/30 hover:border-accent transition-romantic;
+  }
+  
+  .video-card {
+    @apply bg-card/90 backdrop-blur-lg border border-accent/20 hover:border-primary/40 transition-romantic;
+  }
 }
 
 @keyframes heart-float {
@@ -200,5 +233,23 @@ All colors MUST be HSL.
   50% {
     opacity: 1;
     transform: scale(1.2);
+  }
+}
+
+@keyframes pulse-red {
+  0%, 100% {
+    box-shadow: 0 0 5px hsl(0 75% 45% / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(0 75% 45% / 0.8);
+  }
+}
+
+@keyframes pulse-blue {
+  0%, 100% {
+    box-shadow: 0 0 5px hsl(220 70% 50% / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(220 70% 50% / 0.8);
   }
 }
