@@ -8,35 +8,53 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 340 40% 98%;
+    --foreground: 340 60% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 350 50% 96%;
+    --card-foreground: 340 60% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 350 50% 96%;
+    --popover-foreground: 340 60% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 340 75% 65%;
+    --primary-foreground: 350 50% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 350 40% 90%;
+    --secondary-foreground: 340 60% 25%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 345 35% 92%;
+    --muted-foreground: 340 30% 55%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 315 70% 80%;
+    --accent-foreground: 340 60% 15%;
 
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 345 25% 88%;
+    --input: 345 25% 88%;
+    --ring: 340 75% 65%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
+
+    /* Romantic gradients */
+    --gradient-romantic: linear-gradient(135deg, hsl(340 75% 75%), hsl(315 70% 80%), hsl(290 65% 85%));
+    --gradient-soft: linear-gradient(180deg, hsl(350 50% 98%), hsl(340 40% 96%));
+    --gradient-hero: linear-gradient(135deg, hsl(340 60% 85%) 0%, hsl(315 55% 88%) 50%, hsl(290 50% 90%) 100%);
+    
+    /* Romantic shadows */
+    --shadow-romantic: 0 10px 40px -10px hsl(340 75% 65% / 0.3);
+    --shadow-soft: 0 4px 20px -4px hsl(340 50% 70% / 0.2);
+    --shadow-glow: 0 0 30px hsl(340 75% 70% / 0.4);
+
+    /* Heart animations */
+    --heart-float: heart-float 6s ease-in-out infinite;
+    --sparkle: sparkle 2s ease-in-out infinite;
+
+    /* Transitions */
+    --transition-romantic: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-bounce: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
 
     --sidebar-background: 0 0% 98%;
 
@@ -101,5 +119,86 @@ All colors MUST be HSL.
 
   body {
     @apply bg-background text-foreground;
+    background: var(--gradient-soft);
+    min-height: 100vh;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-romantic {
+    background: var(--gradient-romantic);
+  }
+  
+  .bg-gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .shadow-romantic {
+    box-shadow: var(--shadow-romantic);
+  }
+  
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+  
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+  
+  .transition-romantic {
+    transition: var(--transition-romantic);
+  }
+  
+  .transition-bounce {
+    transition: var(--transition-bounce);
+  }
+  
+  .text-gradient {
+    background: var(--gradient-romantic);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .polaroid {
+    @apply bg-card rounded-lg p-3 shadow-soft transform rotate-1 hover:rotate-0 transition-bounce;
+  }
+  
+  .polaroid:nth-child(even) {
+    @apply -rotate-2 hover:rotate-0;
+  }
+  
+  .floating-heart {
+    animation: heart-float 6s ease-in-out infinite;
+  }
+  
+  .sparkle {
+    animation: sparkle 2s ease-in-out infinite;
+  }
+}
+
+@keyframes heart-float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  25% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(1deg);
+  }
+  75% {
+    transform: translateY(-15px) rotate(-1deg);
+  }
+}
+
+@keyframes sparkle {
+  0%, 100% {
+    opacity: 0.8;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
   }
 }
