@@ -1,8 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, Gift, Star, Video, Gamepad2, Tv } from "lucide-react";
+import { Heart, Gift, Star, Video, Gamepad2, Tv, Settings } from "lucide-react";
 
-const BirthdayHero = () => {
+interface BirthdayHeroProps {
+  userName: string;
+  partnerName: string;
+  userRole: "husband" | "wife";
+  onPersonalize: () => void;
+}
+
+const BirthdayHero = ({ userName, partnerName, userRole, onPersonalize }: BirthdayHeroProps) => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-hero relative overflow-hidden">
       <div className="absolute inset-0 opacity-30">
@@ -21,6 +28,17 @@ const BirthdayHero = () => {
         ))}
       </div>
 
+      {/* Personalization Button */}
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={onPersonalize}
+        className="absolute top-6 right-6 z-20 bg-background/20 backdrop-blur-sm border-primary/30 text-foreground hover:bg-background/30"
+      >
+        <Settings className="w-4 h-4 mr-2" />
+        Personalize
+      </Button>
+
       <Card className="max-w-4xl mx-auto p-8 md:p-12 text-center bg-card/90 backdrop-blur-lg shadow-romantic border-0 relative z-10">
         <div className="space-y-6">
           <div className="flex justify-center space-x-4 mb-6">
@@ -30,11 +48,11 @@ const BirthdayHero = () => {
           </div>
 
           <h1 className="text-4xl md:text-6xl lg:text-7xl font-script font-bold text-gradient leading-tight">
-            Happy Birthday
+            Happy 20th Birthday
           </h1>
           
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-script text-primary mb-6">
-            My Beautiful Wife ❤️
+            My Beautiful {partnerName} ❤️
           </h2>
 
           <div className="max-w-2xl mx-auto space-y-4">
@@ -92,7 +110,8 @@ const BirthdayHero = () => {
           </div>
 
           <div className="mt-8 text-sm text-muted-foreground">
-            <p>With all my love, from your devoted husband 💕</p>
+            <p>With all my love, from your devoted {userRole} 💕</p>
+            <p className="text-base font-medium text-primary mt-1">- {userName}</p>
             <p className="mt-2 italic">Distance means nothing when you mean everything</p>
           </div>
         </div>
