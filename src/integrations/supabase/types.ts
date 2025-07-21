@@ -14,7 +14,195 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      birthday_wishes: {
+        Row: {
+          created_at: string
+          id: string
+          is_approved: boolean | null
+          message: string
+          sender_name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_approved?: boolean | null
+          message: string
+          sender_name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_approved?: boolean | null
+          message?: string
+          sender_name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      game_sessions: {
+        Row: {
+          created_at: string
+          game_state: Json | null
+          game_type: string
+          host_id: string
+          id: string
+          is_active: boolean | null
+          participants: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          game_state?: Json | null
+          game_type: string
+          host_id: string
+          id?: string
+          is_active?: boolean | null
+          participants?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          game_state?: Json | null
+          game_type?: string
+          host_id?: string
+          id?: string
+          is_active?: boolean | null
+          participants?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          updated_at: string
+          url: string
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          url: string
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          updated_at?: string
+          url?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          partner_name: string | null
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          partner_name?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          partner_name?: string | null
+          role?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      video_sessions: {
+        Row: {
+          created_at: string
+          host_id: string
+          id: string
+          is_active: boolean | null
+          participants: Json | null
+          settings: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          host_id: string
+          id?: string
+          is_active?: boolean | null
+          participants?: Json | null
+          settings?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          host_id?: string
+          id?: string
+          is_active?: boolean | null
+          participants?: Json | null
+          settings?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      watch_sessions: {
+        Row: {
+          content_url: string | null
+          created_at: string
+          current_position: number | null
+          host_id: string
+          id: string
+          is_playing: boolean | null
+          participants: Json | null
+          platform: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          content_url?: string | null
+          created_at?: string
+          current_position?: number | null
+          host_id: string
+          id?: string
+          is_playing?: boolean | null
+          participants?: Json | null
+          platform?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          content_url?: string | null
+          created_at?: string
+          current_position?: number | null
+          host_id?: string
+          id?: string
+          is_playing?: boolean | null
+          participants?: Json | null
+          platform?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

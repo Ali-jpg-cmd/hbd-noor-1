@@ -7,6 +7,7 @@ interface BirthdayHeroProps {
   partnerName: string;
   userRole: "husband" | "wife";
   onPersonalize: () => void;
+  user?: any;
 }
 
 const BirthdayHero = ({ userName, partnerName, userRole, onPersonalize }: BirthdayHeroProps) => {

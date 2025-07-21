@@ -12,7 +12,11 @@ const movies = [
   { id: 4, title: "La La Land", type: "Musical", thumbnail: "🎭", duration: "2:08:20" },
 ];
 
-const WatchTogether = () => {
+interface WatchTogetherProps {
+  user: any;
+}
+
+const WatchTogether = ({ user }: WatchTogetherProps) => {
   const [currentMovie, setCurrentMovie] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState("00:00");

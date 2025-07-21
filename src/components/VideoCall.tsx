@@ -4,7 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Video, VideoOff, Mic, MicOff, Phone, PhoneOff, Users, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const VideoCall = () => {
+interface VideoCallProps {
+  user: any;
+}
+
+const VideoCall = ({ user }: VideoCallProps) => {
   const [isVideoOn, setIsVideoOn] = useState(false);
   const [isAudioOn, setIsAudioOn] = useState(false);
   const [isInCall, setIsInCall] = useState(false);

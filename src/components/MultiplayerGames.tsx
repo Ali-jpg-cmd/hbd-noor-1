@@ -150,7 +150,11 @@ const TicTacToe = ({ onBack }) => {
   );
 };
 
-const MultiplayerGames = () => {
+interface MultiplayerGamesProps {
+  user: any;
+}
+
+const MultiplayerGames = ({ user }: MultiplayerGamesProps) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [isInGame, setIsInGame] = useState(false);
   const { toast } = useToast();
