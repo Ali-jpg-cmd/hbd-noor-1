@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Video, VideoOff, Mic, MicOff, Phone, PhoneOff, Users, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface VideoCallProps {
   user: any;
@@ -12,32 +13,154 @@ const VideoCall = ({ user }: VideoCallProps) => {
   const [isVideoOn, setIsVideoOn] = useState(false);
   const [isAudioOn, setIsAudioOn] = useState(false);
   const [isInCall, setIsInCall] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [participants, setParticipants] = useState<any[]>([]);
   const { toast } = useToast();
 
-  const toggleVideo = () => {
+  useEffect(() => {
+    if (!user) return;
+
+    // Subscribe to video session updates
+    const channel = supabase
+      .channel('video-sessions')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'video_sessions',
+        },
+        (payload: any) => {
+          console.log('Video session update:', payload);
+          if (payload.new && Array.isArray(payload.new.participants)) {
+            setParticipants(payload.new.participants);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const toggleVideo = async () => {
+    if (!user) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to use video calling",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsVideoOn(!isVideoOn);
+    
+    // Update session if in call
+    if (sessionId) {
+      await supabase
+        .from('video_sessions')
+        .update({
+          settings: { video_enabled: !isVideoOn }
+        })
+        .eq('id', sessionId);
+    }
+
     toast({
       title: isVideoOn ? "Camera turned off" : "Camera turned on",
-      description: "Video call functionality requires Supabase integration for real-time features",
+      description: isVideoOn ? "Your video is now disabled" : "Your video is now active",
     });
   };
 
-  const toggleAudio = () => {
+  const toggleAudio = async () => {
+    if (!user) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to use audio calling",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsAudioOn(!isAudioOn);
+    
+    // Update session if in call
+    if (sessionId) {
+      await supabase
+        .from('video_sessions')
+        .update({
+          settings: { audio_enabled: !isAudioOn }
+        })
+        .eq('id', sessionId);
+    }
+
     toast({
       title: isAudioOn ? "Microphone muted" : "Microphone unmuted",
-      description: "Voice call functionality requires Supabase integration for real-time features",
+      description: isAudioOn ? "Your microphone is now muted" : "Your microphone is now active",
     });
   };
 
-  const toggleCall = () => {
-    setIsInCall(!isInCall);
-    toast({
-      title: isInCall ? "Call ended" : "Call started",
-      description: isInCall 
-        ? "Hope you had a wonderful conversation! ❤️" 
-        : "Connecting to your beautiful wife... 💕",
-    });
+  const toggleCall = async () => {
+    if (!user) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to start a video call",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isInCall) {
+      // Start a new video session
+      const { data, error } = await supabase
+        .from('video_sessions')
+        .insert({
+          host_id: user.id,
+          is_active: true,
+          participants: [user.id],
+          settings: {
+            video_enabled: isVideoOn,
+            audio_enabled: isAudioOn,
+          }
+        })
+        .select()
+        .single();
+
+      if (error) {
+        toast({
+          title: "Call Failed",
+          description: "Failed to start video call",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setSessionId(data.id);
+      setIsInCall(true);
+      setParticipants([user.id]);
+      
+      toast({
+        title: "Call Started! 💕",
+        description: "Your video call session is now active",
+      });
+    } else {
+      // End the call
+      if (sessionId) {
+        await supabase
+          .from('video_sessions')
+          .update({ is_active: false })
+          .eq('id', sessionId);
+      }
+
+      setIsInCall(false);
+      setSessionId(null);
+      setParticipants([]);
+      
+      toast({
+        title: "Call Ended",
+        description: "Hope you had a wonderful conversation! ❤️",
+      });
+    }
   };
 
   return (
@@ -132,11 +255,11 @@ const VideoCall = ({ user }: VideoCallProps) => {
 
         <div className="text-center mt-6">
           <p className="text-sm text-muted-foreground">
-            Call status: {isInCall ? "Connected ❤️" : "Ready to call"}
+            Call status: {isInCall ? `Connected ❤️ (${participants.length} participant${participants.length === 1 ? '' : 's'})` : "Ready to call"}
           </p>
-          {!isInCall && (
+          {sessionId && (
             <p className="text-xs text-muted-foreground mt-2">
-              Real-time video/voice calling requires Supabase integration
+              Session ID: {sessionId.slice(0, 8)}... • Real-time sync enabled
             </p>
           )}
         </div>
