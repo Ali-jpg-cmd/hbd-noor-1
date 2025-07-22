@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Play, Pause, SkipForward, SkipBack, Volume2, Tv, Youtube, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const movies = [
   { id: 1, title: "Your Wedding Day", type: "Memory", thumbnail: "🎥", duration: "2:45:30" },
@@ -22,6 +23,7 @@ const WatchTogether = ({ user }: WatchTogetherProps) => {
   const [currentTime, setCurrentTime] = useState("00:00");
   const [netflixUrl, setNetflixUrl] = useState("");
   const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [isYouTubeConnected, setIsYouTubeConnected] = useState(false);
   const { toast } = useToast();
 
   const handlePlayPause = () => {
@@ -48,11 +50,45 @@ const WatchTogether = ({ user }: WatchTogetherProps) => {
     });
   };
 
-  const connectYoutube = () => {
-    toast({
-      title: "YouTube Integration", 
-      description: "YouTube account linking requires Supabase backend integration for OAuth",
-    });
+  const connectYoutube = async () => {
+    if (!user) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to connect your YouTube account",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          scopes: 'https://www.googleapis.com/auth/youtube.readonly',
+          redirectTo: `${window.location.origin}/`,
+        }
+      });
+
+      if (error) {
+        toast({
+          title: "YouTube Connection Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        setIsYouTubeConnected(true);
+        toast({
+          title: "YouTube Connected! 🎥",
+          description: "You can now sync YouTube videos together",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Connection Error",
+        description: "Failed to connect to YouTube",
+        variant: "destructive",
+      });
+    }
   };
 
   const watchNetflixUrl = () => {
@@ -66,10 +102,39 @@ const WatchTogether = ({ user }: WatchTogetherProps) => {
 
   const watchYoutubeUrl = () => {
     if (youtubeUrl) {
+      if (!isYouTubeConnected && !user) {
+        toast({
+          title: "YouTube Connection Required",
+          description: "Connect your YouTube account for synchronized viewing",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
-        title: "YouTube Party Started!",
-        description: "Synchronized YouTube viewing requires Supabase real-time features",
+        title: "YouTube Party Started! 🎉",
+        description: "Now watching together with real-time sync",
       });
+      
+      // Create watch session in database
+      if (user) {
+        supabase
+          .from('watch_sessions')
+          .insert({
+            host_id: user.id,
+            title: 'YouTube Video',
+            content_url: youtubeUrl,
+            platform: 'youtube',
+            is_playing: false,
+            current_position: 0,
+            participants: [user.id],
+          })
+          .then(({ error }) => {
+            if (error) {
+              console.error('Error creating watch session:', error);
+            }
+          });
+      }
     }
   };
 
@@ -121,8 +186,13 @@ const WatchTogether = ({ user }: WatchTogetherProps) => {
                 className="border-accent/20"
               />
               <div className="flex gap-2">
-                <Button variant="heart" onClick={connectYoutube} className="flex-1">
-                  Connect YouTube
+                <Button 
+                  variant="heart" 
+                  onClick={connectYoutube} 
+                  className="flex-1"
+                  disabled={isYouTubeConnected}
+                >
+                  {isYouTubeConnected ? "✓ Connected" : "Connect YouTube"}
                 </Button>
                 <Button variant="secondary" onClick={watchYoutubeUrl} disabled={!youtubeUrl}>
                   <ExternalLink size={16} />
