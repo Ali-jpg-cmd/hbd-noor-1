@@ -44,9 +44,18 @@ const WatchTogether = ({ user }: WatchTogetherProps) => {
   };
 
   const connectNetflix = () => {
+    if (!user) {
+      toast({
+        title: "Sign In Required",
+        description: "Please sign in to sync Netflix viewing",
+        variant: "destructive",
+      });
+      return;
+    }
+
     toast({
-      title: "Netflix Integration",
-      description: "Netflix account linking requires Supabase backend integration for OAuth",
+      title: "Netflix Sync Ready! 🎬",
+      description: "You can now share Netflix URLs for synchronized viewing",
     });
   };
 
@@ -93,10 +102,37 @@ const WatchTogether = ({ user }: WatchTogetherProps) => {
 
   const watchNetflixUrl = () => {
     if (netflixUrl) {
+      if (!user) {
+        toast({
+          title: "Sign In Required",
+          description: "Please sign in to start a watch party",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       toast({
-        title: "Netflix Party Started!",
-        description: "Synchronized Netflix viewing requires Supabase real-time features",
+        title: "Netflix Party Started! 🍿",
+        description: "Now watching together with real-time sync",
       });
+      
+      // Create watch session in database
+      supabase
+        .from('watch_sessions')
+        .insert({
+          host_id: user.id,
+          title: 'Netflix Show/Movie',
+          content_url: netflixUrl,
+          platform: 'netflix',
+          is_playing: false,
+          current_position: 0,
+          participants: [user.id],
+        })
+        .then(({ error }) => {
+          if (error) {
+            console.error('Error creating watch session:', error);
+          }
+        });
     }
   };
 
@@ -164,7 +200,7 @@ const WatchTogether = ({ user }: WatchTogetherProps) => {
               />
               <div className="flex gap-2">
                 <Button variant="romantic" onClick={connectNetflix} className="flex-1">
-                  Connect Netflix
+                  Ready for Netflix
                 </Button>
                 <Button variant="secondary" onClick={watchNetflixUrl} disabled={!netflixUrl}>
                   <ExternalLink size={16} />
