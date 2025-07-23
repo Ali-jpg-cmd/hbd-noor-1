@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Heart, Gift, Star, Video, Gamepad2, Tv, Settings } from "lucide-react";
+import { Heart, Gift, Star, Video, Gamepad2, Tv, Settings, Play } from "lucide-react";
 
 interface BirthdayHeroProps {
   userName: string;
@@ -68,45 +68,55 @@ const BirthdayHero = ({ userName, partnerName, userRole, onPersonalize }: Birthd
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 justify-center items-center mt-8">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 justify-center items-center mt-8">
             <Button 
               variant="romantic" 
               size="lg"
-              className="text-base px-6 py-3"
+              className="text-base px-4 py-3"
               onClick={() => document.getElementById('gallery')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <Heart className="mr-2" size={18} />
-              Memories
+              <Heart className="mr-2" size={16} />
+              Photos
             </Button>
             
             <Button 
               variant="heart" 
               size="lg"
-              className="text-base px-6 py-3"
+              className="text-base px-4 py-3"
+              onClick={() => document.getElementById('videos')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <Play className="mr-2" size={16} />
+              Videos
+            </Button>
+            
+            <Button 
+              variant="secondary" 
+              size="lg"
+              className="text-base px-4 py-3"
               onClick={() => document.getElementById('video')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <Video className="mr-2" size={18} />
-              Video Call
+              <Video className="mr-2" size={16} />
+              Call
             </Button>
 
             <Button 
               variant="romantic" 
               size="lg"
-              className="text-base px-6 py-3"
+              className="text-base px-4 py-3"
               onClick={() => document.getElementById('watch')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <Tv className="mr-2" size={18} />
-              Watch Together
+              <Tv className="mr-2" size={16} />
+              Watch
             </Button>
             
             <Button 
               variant="heart" 
               size="lg"
-              className="text-base px-6 py-3"
+              className="text-base px-4 py-3"
               onClick={() => document.getElementById('games')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              <Gamepad2 className="mr-2" size={18} />
-              Play Games
+              <Gamepad2 className="mr-2" size={16} />
+              Games
             </Button>
           </div>
 

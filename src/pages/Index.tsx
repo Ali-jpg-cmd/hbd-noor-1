@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import BirthdayHero from "@/components/BirthdayHero";
 import PhotoGallery from "@/components/PhotoGallery";
+import VideoGallery from "@/components/VideoGallery";
 import BirthdayWishes from "@/components/BirthdayWishes";
 import FloatingHearts from "@/components/FloatingHearts";
 import VideoCall from "@/components/VideoCall";
@@ -168,11 +169,15 @@ const Index = () => {
         <PhotoGallery user={user} />
       </div>
       
-      <div id="video" className="py-20 bg-gradient-soft">
+      <div id="videos" className="py-20 bg-gradient-soft">
+        <VideoGallery user={user} />
+      </div>
+      
+      <div id="video" className="py-20">
         <VideoCall user={user} />
       </div>
       
-      <div id="watch" className="py-20">
+      <div id="watch" className="py-20 bg-gradient-soft">
         <WatchTogether user={user} />
       </div>
       
