@@ -111,6 +111,17 @@ const WatchTogether = ({ user }: WatchTogetherProps) => {
         return;
       }
       
+      // Set Netflix as current movie to show video player
+      const netflixMovie = {
+        id: 'netflix-' + Date.now(),
+        title: 'Netflix Content',
+        type: 'Streaming',
+        thumbnail: '🎬',
+        duration: 'Live'
+      };
+      setCurrentMovie(netflixMovie);
+      setIsPlaying(false);
+      
       toast({
         title: "Netflix Party Started! 🍿",
         description: "Now watching together with real-time sync",
