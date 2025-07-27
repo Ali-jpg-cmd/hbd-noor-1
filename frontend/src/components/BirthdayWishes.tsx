@@ -3,9 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, Sparkles, Star, Gift, Send, MessageCircle } from "lucide-react";
+import { Heart, Sparkles, Star, Gift, Send, MessageCircle, ThumbsUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { User } from "@supabase/supabase-js";
 
 const defaultWishes = [
@@ -33,9 +32,12 @@ const defaultWishes = [
 
 interface BirthdayWish {
   id: string;
-  sender_name: string;
+  user_id: string;
+  user_name: string;
   message: string;
+  is_anonymous: boolean;
   created_at: string;
+  likes: string[];
   is_approved: boolean;
 }
 
@@ -47,54 +49,67 @@ const BirthdayWishes = ({ user }: BirthdayWishesProps) => {
   const [wishes, setWishes] = useState<BirthdayWish[]>([]);
   const [newWishName, setNewWishName] = useState("");
   const [newWishMessage, setNewWishMessage] = useState("");
+  const [isAnonymous, setIsAnonymous] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+
+  const backendUrl = import.meta.env.VITE_REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
 
   useEffect(() => {
     fetchWishes();
     
-    // Subscribe to realtime updates for approved wishes
-    const channel = supabase
-      .channel('birthday-wishes-changes')
-      .on('postgres_changes', 
-        { event: 'INSERT', schema: 'public', table: 'birthday_wishes' },
-        (payload) => {
-          const newWish = payload.new as BirthdayWish;
-          if (newWish.is_approved) {
-            setWishes(prev => [newWish, ...prev]);
-            toast({
-              title: "New Birthday Wish! 🎉",
-              description: `${newWish.sender_name} sent a beautiful message!`,
-            });
-          }
+    // Set up WebSocket connection for real-time updates
+    if (user) {
+      const ws = new WebSocket(`${backendUrl.replace('https://', 'wss://')}/ws/${user.id}`);
+      
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'new_wish') {
+          fetchWishes(); // Refresh wishes when new one is added
+          toast({
+            title: "New Birthday Wish! 🎉",
+            description: `${message.user_name} sent a beautiful message!`,
+          });
         }
-      )
-      .subscribe();
+      };
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      return () => {
+        ws.close();
+      };
+    }
+  }, [user]);
 
   const fetchWishes = async () => {
-    const { data, error } = await supabase
-      .from('birthday_wishes')
-      .select('*')
-      .eq('is_approved', true)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const response = await fetch(`${backendUrl}/api/wishes?limit=100`);
+      if (!response.ok) throw new Error('Failed to fetch wishes');
+      
+      const wishesData = await response.json();
+      setWishes(wishesData);
+    } catch (error) {
       console.error('Error fetching wishes:', error);
-    } else if (data) {
-      setWishes(data);
+      toast({
+        title: "Error",
+        description: "Failed to load birthday wishes",
+        variant: "destructive",
+      });
     }
   };
 
   const submitWish = async () => {
-    if (!newWishName.trim() || !newWishMessage.trim()) {
+    if (!newWishMessage.trim()) {
       toast({
-        title: "Missing Information",
-        description: "Please fill in both your name and message.",
+        title: "Missing Message",
+        description: "Please write a birthday message.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!isAnonymous && !newWishName.trim()) {
+      toast({
+        title: "Missing Name",
+        description: "Please enter your name or choose to send anonymously.",
         variant: "destructive",
       });
       return;
@@ -103,21 +118,29 @@ const BirthdayWishes = ({ user }: BirthdayWishesProps) => {
     setIsSubmitting(true);
     
     try {
-      const { error } = await supabase
-        .from('birthday_wishes')
-        .insert({
-          user_id: user?.id || 'anonymous',
-          sender_name: newWishName.trim(),
-          message: newWishMessage.trim(),
-          is_approved: true, // Auto-approve for now
-        });
+      const userId = user?.id || 'anonymous';
+      const wishData = {
+        message: newWishMessage.trim(),
+        is_anonymous: isAnonymous
+      };
 
-      if (error) {
-        throw error;
+      const response = await fetch(`${backendUrl}/api/wishes?user_id=${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(wishData),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send wish');
       }
 
       setNewWishName("");
       setNewWishMessage("");
+      setIsAnonymous(false);
+      await fetchWishes(); // Refresh the wishes list
+      
       toast({
         title: "Wish Sent! 💌",
         description: "Your beautiful birthday message has been shared!",
@@ -130,6 +153,48 @@ const BirthdayWishes = ({ user }: BirthdayWishesProps) => {
       });
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const likeWish = async (wish: BirthdayWish) => {
+    if (!user) {
+      toast({
+        title: "Please Sign In",
+        description: "You need to sign in to like wishes.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const response = await fetch(`${backendUrl}/api/wishes/${wish.id}/like?user_id=${user.id}`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) throw new Error('Failed to like wish');
+      
+      const result = await response.json();
+      
+      // Update the wish in local state
+      setWishes(prev => prev.map(w => 
+        w.id === wish.id 
+          ? { ...w, likes: result.status === 'liked' 
+              ? [...w.likes, user.id] 
+              : w.likes.filter(id => id !== user.id) 
+            }
+          : w
+      ));
+
+      toast({
+        title: result.status === 'liked' ? "Wish Liked! ❤️" : "Like Removed",
+        description: result.status === 'liked' ? "You loved this wish!" : "Like removed",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like wish",
+        variant: "destructive",
+      });
     }
   };
 
@@ -152,14 +217,16 @@ const BirthdayWishes = ({ user }: BirthdayWishesProps) => {
             Send a Birthday Wish
           </h3>
           <div className="space-y-4">
-            <div>
-              <Input
-                value={newWishName}
-                onChange={(e) => setNewWishName(e.target.value)}
-                placeholder="Your name..."
-                className="bg-background/50 border-primary/20"
-              />
-            </div>
+            {!isAnonymous && (
+              <div>
+                <Input
+                  value={newWishName}
+                  onChange={(e) => setNewWishName(e.target.value)}
+                  placeholder="Your name..."
+                  className="bg-background/50 border-primary/20"
+                />
+              </div>
+            )}
             <div>
               <Textarea
                 value={newWishMessage}
@@ -168,6 +235,18 @@ const BirthdayWishes = ({ user }: BirthdayWishesProps) => {
                 rows={3}
                 className="bg-background/50 border-primary/20"
               />
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                id="anonymous"
+                checked={isAnonymous}
+                onChange={(e) => setIsAnonymous(e.target.checked)}
+                className="rounded border-primary/20"
+              />
+              <label htmlFor="anonymous" className="text-sm text-muted-foreground">
+                Send anonymously
+              </label>
             </div>
             <Button
               onClick={submitWish}
@@ -229,13 +308,29 @@ const BirthdayWishes = ({ user }: BirthdayWishesProps) => {
                 >
                   <div className="flex items-center gap-2 mb-4">
                     <Heart className="w-5 h-5 text-primary" />
-                    <span className="font-semibold text-primary">{wish.sender_name}</span>
+                    <span className="font-semibold text-primary">
+                      {wish.is_anonymous ? "Anonymous" : wish.user_name}
+                    </span>
                   </div>
                   <p className="text-muted-foreground leading-relaxed mb-4">
                     {wish.message}
                   </p>
-                  <div className="text-xs text-muted-foreground">
-                    {new Date(wish.created_at).toLocaleDateString()}
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(wish.created_at).toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={wish.likes.includes(user?.id || '') ? "default" : "ghost"}
+                        onClick={() => likeWish(wish)}
+                        className="text-xs"
+                        disabled={!user}
+                      >
+                        <ThumbsUp className="w-3 h-3 mr-1" />
+                        {wish.likes.length > 0 && wish.likes.length}
+                      </Button>
+                    </div>
                   </div>
                 </Card>
               ))}
