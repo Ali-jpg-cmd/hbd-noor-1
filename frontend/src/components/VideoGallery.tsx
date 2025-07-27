@@ -3,19 +3,28 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Upload, Play, Pause, Trash2, Video, Heart, Clock } from "lucide-react";
+import { Upload, Play, Pause, Trash2, Video, Heart, Clock, ThumbsUp, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Video {
   id: string;
+  user_id: string;
   title: string;
   description?: string;
-  video_url: string;
-  thumbnail_url?: string;
+  video_data: string; // base64 encoded
+  thumbnail_data?: string;
+  file_size: number;
+  mime_type: string;
   duration?: number;
-  created_at: string;
-  user_id: string;
+  uploaded_at: string;
+  likes: string[];
+  comments: Array<{
+    id: string;
+    user_id: string;
+    comment: string;
+    created_at: string;
+  }>;
+  views: number;
 }
 
 interface VideoGalleryProps {
@@ -33,22 +42,59 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
 
+  const backendUrl = import.meta.env.VITE_REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
+
   useEffect(() => {
     loadVideos();
-  }, []);
+    
+    // Set up WebSocket connection for real-time updates
+    if (user) {
+      const ws = new WebSocket(`${backendUrl.replace('https://', 'wss://')}/ws/${user.id}`);
+      
+      ws.onmessage = (event) => {
+        const message = JSON.parse(event.data);
+        if (message.type === 'new_video') {
+          loadVideos(); // Refresh videos when new one is added
+          toast({
+            title: "New Video Added! 🎥",
+            description: "Someone just shared a special moment!",
+          });
+        }
+      };
+
+      return () => {
+        ws.close();
+      };
+    }
+  }, [user]);
 
   const loadVideos = async () => {
     try {
-      const { data, error } = await supabase
-        .from('videos')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setVideos(data || []);
+      const response = await fetch(`${backendUrl}/api/videos?limit=50`);
+      if (!response.ok) throw new Error('Failed to fetch videos');
+      
+      const videosData = await response.json();
+      setVideos(videosData);
     } catch (error: any) {
       console.error('Error loading videos:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load videos",
+        variant: "destructive",
+      });
     }
+  };
+
+  const convertFileToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]); // Remove data URL prefix
+      };
+      reader.onerror = error => reject(error);
+    });
   };
 
   const handleVideoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -76,11 +122,11 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
       return;
     }
 
-    // Check file size (max 100MB)
-    if (file.size > 100 * 1024 * 1024) {
+    // Check file size (max 50MB for videos)
+    if (file.size > 50 * 1024 * 1024) {
       toast({
         title: "File Too Large",
-        description: "Please select a video smaller than 100MB.",
+        description: "Please select a video smaller than 50MB.",
         variant: "destructive",
       });
       return;
@@ -99,32 +145,41 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
     setUploadProgress(0);
 
     try {
-      // Upload video to Supabase Storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      // Convert file to base64
+      const base64Data = await convertFileToBase64(file);
+      
+      // Get video duration
+      const video = document.createElement('video');
+      video.src = URL.createObjectURL(file);
+      
+      const duration = await new Promise<number>((resolve) => {
+        video.onloadedmetadata = () => {
+          resolve(Math.floor(video.duration));
+          URL.revokeObjectURL(video.src);
+        };
+      });
 
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(fileName, file);
+      const videoData = {
+        title: videoTitle,
+        description: videoDescription || null,
+        video_data: base64Data,
+        mime_type: file.type,
+        file_size: file.size,
+        duration: duration
+      };
 
-      if (uploadError) throw uploadError;
+      const formData = new FormData();
+      formData.append('user_id', user.id);
+      formData.append('video_data', JSON.stringify(videoData));
 
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('videos')
-        .getPublicUrl(fileName);
+      const response = await fetch(`${backendUrl}/api/videos`, {
+        method: 'POST',
+        body: formData,
+      });
 
-      // Create video record in database
-      const { error: dbError } = await supabase
-        .from('videos')
-        .insert({
-          user_id: user.id,
-          title: videoTitle,
-          description: videoDescription || null,
-          video_url: publicUrl,
-        });
-
-      if (dbError) throw dbError;
+      if (!response.ok) {
+        throw new Error('Failed to upload video');
+      }
 
       toast({
         title: "Video Uploaded! 🎥",
@@ -151,55 +206,63 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
     }
   };
 
-  const deleteVideo = async (video: Video) => {
-    if (!user || video.user_id !== user.id) {
+  const likeVideo = async (video: Video) => {
+    if (!user) {
       toast({
-        title: "Permission Denied",
-        description: "You can only delete your own videos.",
+        title: "Please Sign In",
+        description: "You need to sign in to like videos.",
         variant: "destructive",
       });
       return;
     }
 
     try {
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from('videos')
-        .delete()
-        .eq('id', video.id);
-
-      if (dbError) throw dbError;
-
-      // Delete from storage
-      const fileName = video.video_url.split('/').pop();
-      if (fileName) {
-        const { error: storageError } = await supabase.storage
-          .from('videos')
-          .remove([`${user.id}/${fileName}`]);
-
-        if (storageError) console.error('Storage deletion error:', storageError);
-      }
-
-      toast({
-        title: "Video Deleted",
-        description: "Your video has been removed.",
+      const response = await fetch(`${backendUrl}/api/videos/${video.id}/like?user_id=${user.id}`, {
+        method: 'POST',
       });
 
-      loadVideos();
-      if (selectedVideo?.id === video.id) {
-        setSelectedVideo(null);
-      }
-    } catch (error: any) {
-      console.error('Delete error:', error);
+      if (!response.ok) throw new Error('Failed to like video');
+      
+      const result = await response.json();
+      
+      // Update the video in local state
+      setVideos(prev => prev.map(v => 
+        v.id === video.id 
+          ? { ...v, likes: result.status === 'liked' 
+              ? [...v.likes, user.id] 
+              : v.likes.filter(id => id !== user.id) 
+            }
+          : v
+      ));
+
       toast({
-        title: "Delete Failed",
-        description: error.message || "Failed to delete video",
+        title: result.status === 'liked' ? "Video Liked! ❤️" : "Like Removed",
+        description: result.status === 'liked' ? "You loved this video!" : "Like removed",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to like video",
         variant: "destructive",
       });
     }
   };
 
-  const playVideo = (video: Video) => {
+  const playVideo = async (video: Video) => {
+    // Track view
+    try {
+      await fetch(`${backendUrl}/api/videos/${video.id}`, {
+        method: 'GET',
+      });
+      
+      // Update local state to increment view count
+      setVideos(prev => prev.map(v => 
+        v.id === video.id ? { ...v, views: v.views + 1 } : v
+      ));
+    } catch (error) {
+      console.error('Error tracking view:', error);
+    }
+
     setSelectedVideo(video);
     setIsPlaying(true);
   };
@@ -220,6 +283,14 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   return (
@@ -298,32 +369,32 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
               <h3 className="text-xl font-bold text-accent-foreground">
                 {selectedVideo.title}
               </h3>
-              <div className="flex items-center gap-2 text-accent-foreground/80">
-                <Clock size={16} />
-                <span className="text-sm">
-                  {formatDuration(selectedVideo.duration)}
-                </span>
+              <div className="flex items-center gap-4 text-accent-foreground/80">
+                <div className="flex items-center gap-2">
+                  <Clock size={16} />
+                  <span className="text-sm">
+                    {formatDuration(selectedVideo.duration)}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Eye size={16} />
+                  <span className="text-sm">{selectedVideo.views} views</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Heart size={16} />
+                  <span className="text-sm">{selectedVideo.likes.length} likes</span>
+                </div>
               </div>
             </div>
             
             <div className="aspect-video bg-card/20 rounded-lg overflow-hidden">
               <video
                 ref={videoRef}
-                src={selectedVideo.video_url}
+                src={`data:${selectedVideo.mime_type};base64,${selectedVideo.video_data}`}
                 className="w-full h-full object-cover"
                 controls
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
-                onLoadedMetadata={(e) => {
-                  const video = e.target as HTMLVideoElement;
-                  if (video.duration && !selectedVideo.duration) {
-                    // Update duration in database
-                    supabase
-                      .from('videos')
-                      .update({ duration: Math.floor(video.duration) })
-                      .eq('id', selectedVideo.id);
-                  }
-                }}
               />
             </div>
 
@@ -343,16 +414,22 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
                 {isPlaying ? "Pause" : "Play"}
               </Button>
               
-              {user && selectedVideo.user_id === user.id && (
-                <Button
-                  variant="destructive"
-                  onClick={() => deleteVideo(selectedVideo)}
-                  className="flex items-center gap-2"
-                >
-                  <Trash2 size={16} />
-                  Delete
-                </Button>
-              )}
+              <Button
+                variant={selectedVideo.likes.includes(user?.id) ? "default" : "outline"}
+                onClick={() => likeVideo(selectedVideo)}
+                className="flex items-center gap-2"
+              >
+                <ThumbsUp size={16} />
+                {selectedVideo.likes.includes(user?.id) ? "Liked" : "Like"} ({selectedVideo.likes.length})
+              </Button>
+              
+              <Button
+                variant="outline"
+                onClick={() => setSelectedVideo(null)}
+                className="flex items-center gap-2"
+              >
+                Close
+              </Button>
             </div>
           </div>
         </Card>
@@ -378,9 +455,9 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
               onClick={() => playVideo(video)}
             >
               <div className="aspect-video bg-gradient-romantic rounded-t-lg flex items-center justify-center relative overflow-hidden">
-                {video.thumbnail_url ? (
+                {video.thumbnail_data ? (
                   <img
-                    src={video.thumbnail_url}
+                    src={`data:image/jpeg;base64,${video.thumbnail_data}`}
                     alt={video.title}
                     className="w-full h-full object-cover"
                   />
@@ -393,6 +470,13 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
                 <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
                   <Play className="w-12 h-12 text-white" />
                 </div>
+                
+                {/* Duration overlay */}
+                {video.duration && (
+                  <div className="absolute bottom-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                    {formatDuration(video.duration)}
+                  </div>
+                )}
               </div>
               
               <div className="p-4">
@@ -405,13 +489,22 @@ const VideoGallery = ({ user }: VideoGalleryProps) => {
                   </p>
                 )}
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>
-                    {new Date(video.created_at).toLocaleDateString()}
-                  </span>
-                  <div className="flex items-center gap-1">
-                    <Heart size={12} />
-                    <span>{formatDuration(video.duration)}</span>
+                  <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1">
+                      <Eye size={12} />
+                      <span>{video.views}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Heart size={12} />
+                      <span>{video.likes.length}</span>
+                    </div>
                   </div>
+                  <span>
+                    {new Date(video.uploaded_at).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="text-xs text-muted-foreground mt-1">
+                  {formatFileSize(video.file_size)}
                 </div>
               </div>
             </Card>
