@@ -276,7 +276,7 @@ const MultiplayerGames = ({ user }: MultiplayerGamesProps) => {
   const [isCreatingGame, setIsCreatingGame] = useState(false);
   const { toast } = useToast();
 
-  const backendUrl = import.meta.env.VITE_REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL;
+  const backendUrl = import.meta.env.VITE_REACT_APP_BACKEND_URL || "https://03269e3d-a03d-4889-a721-b4462c0d6feb.preview.emergentagent.com";
 
   useEffect(() => {
     // Set up WebSocket connection for real-time game updates
